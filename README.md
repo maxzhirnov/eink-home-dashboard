@@ -106,6 +106,7 @@ uvicorn app:app --host 0.0.0.0 --port 8080
 
 Endpoints:
 
+- `GET /` provides a navigation page generated from the service's GET routes.
 - `GET /dashboard.png` renders or returns the cached 800x480 PNG.
 - `GET /preview` shows the PNG centered on a dark page.
 - `GET /health` returns renderer status JSON.
@@ -121,6 +122,7 @@ Dashboard layout:
 Open from another local machine:
 
 ```text
+http://<renderer-ip>:8080/
 http://<renderer-ip>:8080/preview
 http://<renderer-ip>:8080/dashboard.png
 http://<renderer-ip>:8080/health

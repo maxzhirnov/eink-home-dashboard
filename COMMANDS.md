@@ -75,6 +75,7 @@ curl -o dashboard.png "http://${RENDERER_IP}:8080/dashboard.png"
 Browser preview:
 
 ```text
+http://<renderer-ip>:8080/
 http://<renderer-ip>:8080/preview
 ```
 

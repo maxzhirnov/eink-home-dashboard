@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import threading
 from datetime import datetime, timedelta
+from html import escape
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -908,3 +909,115 @@ def health() -> JSONResponse:
         "errors": _cache["errors"],
     }
     return JSONResponse(payload)
+
+
+@app.get("/", include_in_schema=False)
+def home() -> HTMLResponse:
+    descriptions = {
+        "/": "Navigation for the renderer endpoints.",
+        "/dashboard.png": "Rendered 800x480 black-and-white image for ESPHome.",
+        "/preview": "Browser preview of the current dashboard image.",
+        "/health": "Renderer status, cache details, and configuration checks.",
+        "/docs": "Interactive API documentation.",
+        "/redoc": "Alternative API documentation.",
+        "/openapi.json": "OpenAPI schema for this service.",
+    }
+    routes: list[tuple[str, str]] = []
+    for route in app.routes:
+        path = getattr(route, "path", "")
+        methods = getattr(route, "methods", set())
+        if "GET" not in methods or path == "/docs/oauth2-redirect":
+            continue
+        routes.append((path, descriptions.get(path, f"GET endpoint: {path}")))
+    routes.sort(key=lambda item: (item[0] != "/", item[0]))
+
+    links = "\n".join(
+        f"""
+        <a class="endpoint" href="{escape(path, quote=True)}">
+          <code>{escape(path)}</code>
+          <span>{escape(description)}</span>
+        </a>"""
+        for path, description in routes
+    )
+    page_html = f"""
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>E-Ink Home Dashboard</title>
+    <style>
+      :root {{
+        color-scheme: light;
+        font-family: Inter, Arial, sans-serif;
+        background: #f4f1eb;
+        color: #1b1b1b;
+      }}
+      body {{
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }}
+      main {{
+        width: min(720px, calc(100vw - 48px));
+        margin: 32px 0;
+      }}
+      h1 {{
+        font-size: clamp(32px, 6vw, 48px);
+        letter-spacing: -0.05em;
+        margin: 0 0 8px;
+      }}
+      p {{
+        color: #5d5a53;
+        margin: 0 0 28px;
+      }}
+      nav {{
+        display: grid;
+        gap: 10px;
+      }}
+      .endpoint {{
+        display: flex;
+        align-items: baseline;
+        gap: 20px;
+        border: 1px solid #d7d1c7;
+        border-radius: 12px;
+        padding: 16px 18px;
+        color: inherit;
+        background: #fffdf9;
+        text-decoration: none;
+      }}
+      .endpoint:hover {{
+        border-color: #1b1b1b;
+      }}
+      code {{
+        flex: 0 0 150px;
+        font-size: 15px;
+        font-weight: bold;
+      }}
+      span {{
+        color: #5d5a53;
+        font-size: 15px;
+      }}
+      @media (max-width: 560px) {{
+        .endpoint {{
+          display: block;
+        }}
+        span {{
+          display: block;
+          margin-top: 7px;
+        }}
+      }}
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>E-Ink Dashboard</h1>
+      <p>Local renderer and device image endpoints.</p>
+      <nav>{links}
+      </nav>
+    </main>
+  </body>
+</html>
+"""
+    return HTMLResponse(page_html)
