@@ -1,0 +1,17 @@
+[Unit]
+Description=E-Ink Dashboard Renderer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__RUN_USER__
+Group=__RUN_GROUP__
+WorkingDirectory=__PROJECT_DIR__
+Environment=PATH=__PROJECT_DIR__/.venv/bin
+ExecStart=__PROJECT_DIR__/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

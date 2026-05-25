@@ -1,0 +1,24 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+esphome/secrets.yaml
+esphome/*.local.yaml
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated output
+dashboard.png
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
