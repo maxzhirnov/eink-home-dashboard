@@ -851,8 +851,8 @@ def _get_dashboard_png(force: bool = False) -> bytes:
 
 
 @app.get("/dashboard.png")
-def dashboard_png() -> Response:
-    png = _get_dashboard_png()
+def dashboard_png(refresh: bool = False) -> Response:
+    png = _get_dashboard_png(force=refresh)
     return Response(
         content=png,
         media_type="image/png",
@@ -870,23 +870,173 @@ def preview() -> HTMLResponse:
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>E-Ink Dashboard Preview</title>
     <style>
-      html, body {
-        height: 100%;
+      :root {
+        color-scheme: dark;
+        font-family: Inter, Arial, sans-serif;
+        background: #171717;
+        color: #f1efea;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
         margin: 0;
-        background: #1b1b1b;
-        display: grid;
-        place-items: center;
+        min-height: 100vh;
+        padding: 22px;
+      }
+      main {
+        width: min(960px, 100%);
+        margin: 0 auto;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin: 0 0 20px;
+      }
+      h1 {
+        margin: 5px 0 0;
+        font-size: clamp(27px, 4vw, 38px);
+        letter-spacing: -0.05em;
+      }
+      .back, .links a {
+        color: #b7b2a8;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .back:hover, .links a:hover {
+        color: #fff;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      button {
+        appearance: none;
+        border: 1px solid #e8e4dc;
+        border-radius: 9px;
+        background: #e8e4dc;
+        color: #171717;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: bold;
+        padding: 11px 16px;
+      }
+      button:disabled {
+        cursor: wait;
+        opacity: .6;
+      }
+      figure {
+        margin: 0;
+        border: 1px solid #2d2d2d;
+        border-radius: 14px;
+        background: #202020;
+        padding: clamp(10px, 2vw, 18px);
       }
       img {
-        width: min(800px, calc(100vw - 32px));
+        display: block;
+        width: min(800px, 100%);
         height: auto;
+        margin: 0 auto;
+        background: white;
         image-rendering: pixelated;
-        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      }
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 16px 4px 0;
+        color: #9b978f;
+        font-size: 14px;
+      }
+      #status[data-error="true"] {
+        color: #ef9b8f;
+      }
+      .links {
+        display: flex;
+        gap: 18px;
+      }
+      @media (max-width: 620px) {
+        header, footer {
+          display: block;
+        }
+        .actions {
+          margin-top: 18px;
+        }
+        .links {
+          margin-top: 14px;
+        }
       }
     </style>
   </head>
   <body>
-    <img src="/dashboard.png" width="800" height="480" alt="Dashboard preview">
+    <main>
+      <header>
+        <section>
+          <a class="back" href="/">&larr; All endpoints</a>
+          <h1>Dashboard Preview</h1>
+        </section>
+        <section class="actions">
+          <button id="refresh" type="button">Refresh now</button>
+        </section>
+      </header>
+      <figure>
+        <img id="dashboard" src="/dashboard.png" width="800" height="480" alt="Dashboard preview">
+      </figure>
+      <footer>
+        <span id="status">Loading status...</span>
+        <nav class="links">
+          <a href="/dashboard.png" target="_blank" rel="noopener">Open PNG</a>
+          <a href="/health" target="_blank" rel="noopener">Health JSON</a>
+        </nav>
+      </footer>
+    </main>
+    <script>
+      const image = document.getElementById("dashboard");
+      const refreshButton = document.getElementById("refresh");
+      const status = document.getElementById("status");
+
+      function renderedLabel(value) {
+        if (!value) return "Not rendered yet";
+        return "Rendered " + new Date(value).toLocaleString();
+      }
+
+      async function loadStatus() {
+        try {
+          const response = await fetch("/health", {cache: "no-store"});
+          const health = await response.json();
+          const errors = health.errors || [];
+          status.dataset.error = errors.length > 0;
+          status.textContent = errors.length
+            ? renderedLabel(health.rendered_at) + " - " + errors.join("; ")
+            : renderedLabel(health.rendered_at) + " - ready";
+        } catch (error) {
+          status.dataset.error = "true";
+          status.textContent = "Could not load renderer status";
+        }
+      }
+
+      refreshButton.addEventListener("click", async () => {
+        refreshButton.disabled = true;
+        refreshButton.textContent = "Refreshing...";
+        status.dataset.error = "false";
+        status.textContent = "Fetching fresh Home Assistant data...";
+        image.src = "/dashboard.png?refresh=true&t=" + Date.now();
+        try {
+          await image.decode();
+        } catch (error) {
+          status.dataset.error = "true";
+          status.textContent = "Could not reload dashboard image";
+        }
+        await loadStatus();
+        refreshButton.disabled = false;
+        refreshButton.textContent = "Refresh now";
+      });
+
+      loadStatus();
+    </script>
   </body>
 </html>
 """

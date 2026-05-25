@@ -107,8 +107,8 @@ uvicorn app:app --host 0.0.0.0 --port 8080
 Endpoints:
 
 - `GET /` provides a navigation page generated from the service's GET routes.
-- `GET /dashboard.png` renders or returns the cached 800x480 PNG.
-- `GET /preview` shows the PNG centered on a dark page.
+- `GET /dashboard.png` renders or returns the cached 800x480 PNG; append `?refresh=true` to force fresh Home Assistant data.
+- `GET /preview` shows the PNG with navigation, renderer status, and a manual refresh button.
 - `GET /health` returns renderer status JSON.
 
 Dashboard layout:
